@@ -1,0 +1,64 @@
+---
+title: "Practical Machine Learning - Final Project"
+author: "Muhammad Anas Maricar"
+date: "7/27/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(caret)
+```
+
+### Downlaod Data
+```{r cars}
+train_url <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+train_set <- read.csv(train_url)
+
+test_url <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+test_set <- read.csv(test_url)
+```
+
+### Describe Data
+```{r}
+str(train_set)
+```
+
+### Data Cleaning: Clear Columns with mostly na and zero variance
+```{r}
+cleaned_dataset <- function(x) {
+    near_zero_columns <- nearZeroVar(x)
+    res <- x[, -near_zero_columns]
+    
+    na_col <- sapply(res, function(x) mean(is.na(x))) > 0.9
+    res <- res[, na_col == FALSE]
+    
+    res <- res[, -(1:5)]
+    res
+}
+
+cleaned_train <- cleaned_dataset(train_set)
+cleaned_cols <- colnames(cleaned_train)
+str(cleaned_train)
+```
+
+### Model Building - Random Forest
+```{r}
+set.seed(2021)
+fControl <- trainControl(method = "cv", number = 3, verboseIter = FALSE)
+
+fit <- train(classe ~ ., data=cleaned_train, method="rf", trControl=fControl)
+fit$finalModel
+```
+
+### Prediction
+```{r}
+# Get rid of unwanted columns 
+t_set <- test_set[, cleaned_cols[1:53]]
+pred <- predict(fit, newdata=t_set)
+result <- cbind(test_set, pred)
+
+write.csv(result, file = "result.csv")
+pred
+```
